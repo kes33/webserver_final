@@ -1,6 +1,6 @@
 //
-//  webserver.c
-//  
+//  webserver
+//
 //
 //  Created by Kim Swennen and Ben Tzou.
 //
@@ -17,7 +17,7 @@
 
 int main (int argc, char * argv[]) {
     
-/*---------socket setup-----------*/
+    /*---------socket setup-----------*/
     int sockfd;     //socket file descriptor
     
     sockfd = socket(PF_INET, SOCK_STREAM, 0);   //creating a ipv4 socket to use TCP
