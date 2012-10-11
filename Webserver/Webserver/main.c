@@ -20,8 +20,9 @@
 #include <signal.h>    
 #include <unistd.h>
 
-#define MYPORT 2000;  //server port number
-#define BACKLOG 20;
+#define MYPORT 2000  //server port number
+#define BACKLOG 20
+#define BUFSIZE 256
 
 void dumpRequestMessage(int socketfd);  //declaration (function for part A)
 
@@ -100,20 +101,44 @@ int main (int argc, char * argv[]) {
         }
         
         if (pid == 0) {
-            close(sockfd);
+            if (close(sockfd) < 0){
+                perror("error on close in child");
+                exit(1);
+            }
             dumpRequestMessage(childSockfd);
             exit(0);
         }
         
         else
-            close(childSockfd);
+            if (close(childSockfd)<0){
+                perror("error on close in server");
+                exit (1);
+            }
     }
     
     return 0;
 }
 
         
-        
+void dumpRequestMessage(int socketfd) {
+    char buf [BUFSIZE];
+    long int test;
+    bzero(buf, sizeof(buf));
+
+    test = read(socketfd, buf, sizeof(buf));
+    
+    if (test < 0){  //check if read failed
+        perror("error on read");
+        exit(1);
+    }
+    
+    if (test == 0)  //socket closed
+        fprintf(stderr, "client socket closed - no request messages received\n");
+    
+    else {
+        printf("%s",buf);
+    }    
+}
         
         
         

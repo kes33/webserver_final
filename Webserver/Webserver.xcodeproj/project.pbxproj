@@ -28,6 +28,7 @@
 		3B0D3E711624E1D600B2791B /* Webserver */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = Webserver; sourceTree = BUILT_PRODUCTS_DIR; };
 		3B0D3E751624E1D600B2791B /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		3B0D3E771624E1D600B2791B /* Webserver.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = Webserver.1; sourceTree = "<group>"; };
+		3B0D3E7E1627548200B2791B /* index.html */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.html; name = index.html; path = ../../../../../../Sites/index.html; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +62,7 @@
 			isa = PBXGroup;
 			children = (
 				3B0D3E751624E1D600B2791B /* main.c */,
+				3B0D3E7E1627548200B2791B /* index.html */,
 				3B0D3E771624E1D600B2791B /* Webserver.1 */,
 			);
 			path = Webserver;
