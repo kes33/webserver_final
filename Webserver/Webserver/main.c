@@ -7,7 +7,6 @@
 //
 
 /*QUESTIONS:
- 
  */
 
 #include <stdio.h>
