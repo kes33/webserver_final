@@ -7,6 +7,7 @@
 //
 
 /*QUESTIONS:
+    nothing new here; just checking that the commit works
  */
 
 #include <stdio.h>
@@ -15,8 +16,8 @@
 #include <netinet/in.h>
 #include <stdlib.h>
 #include <strings.h>
-#include <sys/wait.h>  
-#include <signal.h>    
+#include <sys/wait.h>
+#include <signal.h>
 #include <unistd.h>
 
 #define MYPORT 2000  //server port number
@@ -24,6 +25,8 @@
 #define BUFSIZE 256
 
 void dumpRequestMessage(int socketfd);  //declaration (function for part A)
+void respondWithHTML(int socketfd);
+void dostuff (int sock);
 
 void sigChildHandler (int s) {
     while (waitpid(-1, NULL, WNOHANG) > 0);
@@ -104,7 +107,7 @@ int main (int argc, char * argv[]) {
                 perror("error on close in child");
                 exit(1);
             }
-            dumpRequestMessage(childSockfd);
+            respondWithHTML(childSockfd);
             exit(0);
         }
         
@@ -122,26 +125,51 @@ int main (int argc, char * argv[]) {
 void dumpRequestMessage(int socketfd) {
     char buf [BUFSIZE];
     long int test;
-    bzero(buf, sizeof(buf));
+    bzero(buf, BUFSIZE);
 
-    test = read(socketfd, buf, sizeof(buf));
+    test = read(socketfd, buf, BUFSIZE);
     
     if (test < 0){  //check if read failed
         perror("error on read");
         exit(1);
     }
     
-    if (test == 0)  //socket closed
+    else if (test == 0)  //socket closed
         fprintf(stderr, "client socket closed - no request messages received\n");
     
     else {
         printf("%s",buf);
     }    
 }
+
+
+void respondWithHTML(int socketfd) {
+    char buf[BUFSIZE];
+    long int test;
+    bzero(buf, BUFSIZE);
+    char header[] = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n";
+    char body[] = "<html><h1>Hello World</h1></html>";
+    
+    test = read(socketfd, buf, BUFSIZE);
+    
+    if (test < 0) {
+        perror("error on read");
+        exit(1);
+    }
+    
+    else if (test == 0)  //socket closed
+        fprintf(stderr, "client socket closed - no request messages received\n");
+
+    else {
+        printf("%s", buf);  //print request
         
+        // writing to client OK response and HTML
+        test = write(socketfd, header, sizeof(header));
+        test = write(socketfd, body, sizeof(body));
         
-        
-        
-        
-        
-        
+        if (test < 0)
+            perror("error on write");
+    }
+}
+
+
