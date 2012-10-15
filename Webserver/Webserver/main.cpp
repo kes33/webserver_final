@@ -19,14 +19,19 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <unistd.h>
+#include <string.h>
+
+#define true 1
+#define false 0
 
 #define MYPORT 2000  //server port number
 #define BACKLOG 20
 #define BUFSIZE 256
 
-void dumpRequestMessage(int socketfd);  //declaration (function for part A)
 void respondWithHTML(int socketfd);
-void dostuff (int sock);
+const int isValidHttpRequest(const char* response);
+const char* getRequestedFilename(const char* buffer);
+
 
 void sigChildHandler (int s) {
     while (waitpid(-1, NULL, WNOHANG) > 0);
@@ -173,3 +178,45 @@ void respondWithHTML(int socketfd) {
 }
 
 
+// Input: response, containing the HTTP GET request
+// Output: true if valid HTTP GET request, false otherwise
+const int isValidHttpRequest(const char* response) {
+    char buffer[strlen(response)];
+    strcpy(buffer, response);
+    
+    char *line = strtok(buffer, "\n");
+    
+    // check if first line of HTTP request is null
+    if (line != NULL) {
+        char *word = strtok(line, " ");
+        
+        // check if first word is GET
+        if (strcmp(word, "GET") == 0) {
+            /* char *filename = */ strtok(NULL, " ");   // avoiding warning for unused variable
+            char *httpVersion = strtok(NULL, " ");
+            char *endOfGet = strtok(NULL, " ");
+            
+            // check if HTTP version is 1.x and no other characters follow HTTP version
+            if (httpVersion != NULL && endOfGet == NULL &&
+                    strncmp(httpVersion, "HTTP/1.", 7) == 0)
+                
+                // everything checks out, return filename
+                return true;
+        }
+    }
+    
+    // if any problem with GET format, send
+    return false;
+}
+
+
+// Input: response, containing the HTTP GET request
+// Output: requested filename
+// Assumptions: HTTP GET request has been validated by isValidHttpRequest
+const char* getRequestedFilename(const char* response) {
+    char buffer[strlen(response)];
+    strcpy(buffer, response);
+    
+    strtok(buffer, " ");
+    return strtok(NULL, " ");
+}
