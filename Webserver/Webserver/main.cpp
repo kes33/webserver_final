@@ -126,55 +126,69 @@ int main (int argc, char * argv[]) {
     return 0;
 }
 
-        
-void dumpRequestMessage(int socketfd) {
-    char buf [BUFSIZE];
-    long int test;
-    bzero(buf, BUFSIZE);
-
-    test = read(socketfd, buf, BUFSIZE);
-    
-    if (test < 0){  //check if read failed
-        perror("error on read");
-        exit(1);
-    }
-    
-    else if (test == 0)  //socket closed
-        fprintf(stderr, "client socket closed - no request messages received\n");
-    
-    else {
-        printf("%s",buf);
-    }    
-}
-
 
 void respondWithHTML(int socketfd) {
-    char buf[BUFSIZE];
-    long int test;
-    bzero(buf, BUFSIZE);
-    char header[] = "HTTP/1.1 200 OK\nContent-Type: text/html\n\n";
-    char body[] = "<html><h1>Hello World</h1></html>";
     
-    test = read(socketfd, buf, BUFSIZE);
-    
-    if (test < 0) {
-        perror("error on read");
+    /*-------------variable declarations-----------------*/
+    size_t buffsize = BUFSIZE;
+    char * buf;
+    bool loopback = true;
+    buf = (char*)malloc(buffsize);
+    if (buf== NULL) {
+        perror("failed to allocate buffer");
         exit(1);
     }
+    bzero(buf, buffsize);
+    char* readPoint = buf;
+    long int amountRead;
+    long int totalRead = 0;
     
-    else if (test == 0)  //socket closed
-        fprintf(stderr, "client socket closed - no request messages received\n");
+    /*--------------read in a loop to make sure buffer is large enough for request message-------------------*/
+    while (loopback) {
+        
+        amountRead = read(socketfd, readPoint, buffsize);
+        totalRead = totalRead + amountRead;         //track total number of bytes read
+        
+        if (amountRead < 0) {
+            perror("error on read");
+            exit(1);
+        }
+        else if (amountRead == 0) {  //socket closed
+            fprintf(stderr, "client socket closed - no complete request messages received\n");
+            exit(1);
+        }
+        
+        else if (amountRead >= buffsize) {        //buffer is too small
+            buffsize *= 2;
+            buf = (char*) realloc(buf, ((size_t)amountRead + buffsize));
+            if (buf == NULL) {
+                perror("error on realloc");
+                exit(1);
+            }
+            readPoint = buf + totalRead;         //start adding new data to the end of the buffer on the next read
+        }
+        
+        else {          //  amountRead < buffsize
+            loopback = false;
+            buf = (char*)realloc(buf, totalRead+1);
+            if (buf == NULL) {
+                perror("error on realloc");
+                exit(1);
+            }
+            buf[totalRead]= '\0';            //buf is now a properly formatted cstring
+            printf("%s", buf);  //print request
+        }
+    }
+    
+    /*---------------parse information from request message--------------*/
 
-    else {
-        printf("%s", buf);  //print request
         
         // writing to client OK response and HTML
-        test = write(socketfd, header, sizeof(header));
-        test = write(socketfd, body, sizeof(body));
+//        test = write(socketfd, header, sizeof(header));
+ //       test = write(socketfd, body, sizeof(body));
         
-        if (test < 0)
-            perror("error on write");
-    }
+//        if (test < 0)
+//            perror("error on write");
 }
 
 
