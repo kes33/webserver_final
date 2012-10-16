@@ -173,6 +173,7 @@ void respondWithHTML(int socketfd) {
     
     replyHeader->contentLength = 0;
     
+    
     /*--------------read in a loop to make sure buffer is large enough for request message-------------------*/
     while (loopback) {
         
