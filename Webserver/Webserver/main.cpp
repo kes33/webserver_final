@@ -26,7 +26,7 @@
 #define true 1
 #define false 0
 
-#define MYPORT 2000  //server port number
+#define MYPORT 2020  //server port number
 #define BACKLOG 20
 #define BUFSIZE 256
 
@@ -50,9 +50,8 @@ void sigChildHandler (int s) {
     while (waitpid(-1, NULL, WNOHANG) > 0);
 }
 
-int main (int argc, char * argv[]) {
-    printf("entering main");
- 
+int main (int argc, const char * argv[]) {
+
     /*---------variable declarations------------*/
     
     int sockfd;     //socket file descriptor
@@ -77,7 +76,6 @@ int main (int argc, char * argv[]) {
     }
     
     /*---------socket setup-----------*/
-    
     sockfd = socket(AF_INET, SOCK_STREAM, 0);   //creating a ipv4 socket to use TCP
     if (sockfd < 0) {
         perror("error opening socket");
@@ -107,14 +105,13 @@ int main (int argc, char * argv[]) {
     
     while (1) {             //will run forever
         //create new socket for incoming client
-        childSockfd = accept(sockfd, (struct sockaddr *) &clientAddress, &clientLength);   
+        childSockfd = accept(sockfd, (struct sockaddr *)&clientAddress, &clientLength);
+        
         if (childSockfd < 1)  {
             perror("error on accept");
             exit(1);
         }
-        
-   //     if (clientLength < sizeof(struct sockaddr_in)      ->  do we need to check for this?
-        
+
         pid = fork();
         if (pid < 0) {
             perror("error on fork");
@@ -134,35 +131,38 @@ int main (int argc, char * argv[]) {
             }
             exit(0);
         }
-        
-        else
+        else {
             if (close(childSockfd)<0){
                 perror("error on close in server");
                 exit (1);
             }
+        }
     }
-    
     return 0;
 }
-
 
 void respondWithHTML(int socketfd) {
     
     /*-------------variable declarations-----------------*/
     size_t buffsize = BUFSIZE;
     size_t totalHeaderBufSize;
-    char * buf;
-    int loopback = true;
+    char * buf = NULL;
+    bool loopback = true;
     buf = (char*)malloc(buffsize);
-    if (buf== NULL) {
+    if (buf == NULL) {
         perror("failed to allocate buffer");
         exit(1);
     }
     bzero(buf, buffsize);
     char* readPoint = buf;
-    long int amountRead;
+    long int amountRead = 0;
     long int totalRead = 0;
-    struct headerInfo *replyHeader=NULL;
+    struct headerInfo *replyHeader;
+    replyHeader = (struct headerInfo*)malloc(sizeof(struct headerInfo));
+    if (replyHeader == NULL) {
+        perror("failed to allocate memory");
+        exit(1);
+    }
     const char* fileName;
     int requestedFileDescriptor;
     struct stat* fileStats = NULL;
@@ -172,14 +172,12 @@ void respondWithHTML(int socketfd) {
     long int test;
     
     replyHeader->contentLength = 0;
-    replyHeader->statusCode = "0";
     
     /*--------------read in a loop to make sure buffer is large enough for request message-------------------*/
     while (loopback) {
         
         amountRead = read(socketfd, readPoint, buffsize);
         totalRead = totalRead + amountRead;         //track total number of bytes read
-        printf("size of amountRead is %ld", amountRead);
         
         if (amountRead < 0) {
             perror("error on read");
@@ -255,6 +253,7 @@ void respondWithHTML(int socketfd) {
     }
     
     //write the reply message to the socket
+    printf("reply message is %s:\n", messageHeader);
     test = write(socketfd, messageHeader, sizeof(messageHeader));
                  
     if (test< 0) {
@@ -267,6 +266,7 @@ void respondWithHTML(int socketfd) {
     
     close(requestedFileDescriptor);
     free(messageHeader);
+    free(replyHeader);
 }
 
 
@@ -278,7 +278,7 @@ int createHeader(struct headerInfo* replyHeader, char* header){
     char terminatingString [] = "\n";
     snprintf(header, BUFSIZE, "HTTP/1.1 %s\n"
              "Connection: close\n"
-             "Date: %s\n"
+             "Date: %s"
              "Server: Apache\n", replyHeader->statusCode, replyHeader->date);
     
     if ((strcmp(replyHeader->statusCode, "404 File NotFound") == 0) || (strcmp(replyHeader->statusCode, "400 Bad Request")) == 0){
@@ -340,5 +340,5 @@ const char* getRequestedFilename(const char* response) {
 
 // stub for getContentType function
 const char* getContentType (const char* fileName) {
-    return "jpg";
+    return "image/jpg";
 }
