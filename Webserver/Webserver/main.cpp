@@ -149,7 +149,7 @@ void respondWithHTML(int socketfd) {
     bool loopback = true;
     buf = (char*)malloc(buffsize);
     if (buf == NULL) {
-        perror("failed to allocate buffer");
+        perror("failed to allocate buffer buf");
         exit(1);
     }
     bzero(buf, buffsize);
@@ -159,12 +159,16 @@ void respondWithHTML(int socketfd) {
     struct headerInfo *replyHeader;
     replyHeader = (struct headerInfo*)malloc(sizeof(struct headerInfo));
     if (replyHeader == NULL) {
-        perror("failed to allocate memory");
+        perror("failed to allocate buffer for replyHeader");
         exit(1);
     }
     const char* fileName;
     int requestedFileDescriptor;
-    struct stat* fileStats = NULL;
+    struct stat* fileStats = (struct stat*) malloc(sizeof(struct stat));
+    if (fileStats == NULL) {
+        perror("failed to allocate buffer for fileStats");
+        exit(1);
+    }
     char* messageHeader = NULL;
     char* writePoint;
     off_t curHeaderSize;
@@ -218,6 +222,10 @@ void respondWithHTML(int socketfd) {
     
     else {                  //was a valid http request
         fileName = getRequestedFilename(buf);
+        fileName = fileName + 1;    //to get rid of leading '/'
+        printf("Size of filenName is %zd\n", strlen(fileName));
+        printf("requested filename is: %s\n", fileName);
+        
         requestedFileDescriptor = open(fileName, O_RDONLY);
         if (requestedFileDescriptor < 0) {
             perror("error opening requested file");
@@ -238,7 +246,7 @@ void respondWithHTML(int socketfd) {
     
     time_t timer = time(NULL);
     replyHeader->date = ctime(&timer);
-    messageHeader = (char*)malloc(BUFSIZE);
+    messageHeader = (char*)malloc(BUFSIZE+strlen(fileName));
     createHeader(replyHeader, messageHeader);
     
     //reallocate a buffer that will fit all of the reply message
@@ -248,12 +256,14 @@ void respondWithHTML(int socketfd) {
     
     //write the data to the end of the header
     writePoint = messageHeader + curHeaderSize;
-    if (read(requestedFileDescriptor, (void*)writePoint, replyHeader->contentLength) < replyHeader->contentLength) {
-        perror("did not read all of content into reply message");
+    if (requestedFileDescriptor >= 0) {
+        if (read(requestedFileDescriptor, (void*)writePoint, replyHeader->contentLength) < replyHeader->contentLength) {
+            perror("did not read all of content into reply message");
+        }
     }
     
     //write the reply message to the socket
-    printf("reply message is %s:\n", messageHeader);
+    printf("reply message is %s\n", messageHeader);
     test = write(socketfd, messageHeader, sizeof(messageHeader));
                  
     if (test< 0) {
@@ -267,6 +277,8 @@ void respondWithHTML(int socketfd) {
     close(requestedFileDescriptor);
     free(messageHeader);
     free(replyHeader);
+    free(buf);
+    free(fileStats);
 }
 
 
@@ -275,13 +287,13 @@ void respondWithHTML(int socketfd) {
 //Output: the header c-string, properly formatted with all necessary content and with terminating crlf
 int createHeader(struct headerInfo* replyHeader, char* header){
     
-    char terminatingString [] = "\n";
+    char terminatingString [] = "\n\0";
     snprintf(header, BUFSIZE, "HTTP/1.1 %s\n"
              "Connection: close\n"
              "Date: %s"
              "Server: Apache\n", replyHeader->statusCode, replyHeader->date);
     
-    if ((strcmp(replyHeader->statusCode, "404 File NotFound") == 0) || (strcmp(replyHeader->statusCode, "400 Bad Request")) == 0){
+    if ((strcmp(replyHeader->statusCode, "404 Not Found") == 0) || (strcmp(replyHeader->statusCode, "400 Bad Request")) == 0){
         strcat(header, terminatingString);
         return 0;
     }
@@ -340,5 +352,5 @@ const char* getRequestedFilename(const char* response) {
 
 // stub for getContentType function
 const char* getContentType (const char* fileName) {
-    return "image/jpg";
+    return "text/html";
 }
